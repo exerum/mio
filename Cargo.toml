@@ -55,6 +55,10 @@ log = "0.4.8"
 [target.'cfg(unix)'.dependencies]
 libc = "0.2.86"
 
+[target.'cfg(target_os = "wasi")'.dependencies]
+wasi = "0.10.2+wasi-snapshot-preview1"
+wasmer-wasi-experimental-network = { git = "https://github.com/exerum/wasmer", rev = "1e978b5" }
+
 [target.'cfg(windows)'.dependencies]
 miow   = "0.3.6"
 winapi = { version = "0.3", features = ["winsock2", "mswsock", "mstcpip"] }

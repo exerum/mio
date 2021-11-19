@@ -3,8 +3,12 @@ use std::io::{self, IoSlice, IoSliceMut, Read, Write};
 use std::net::{self, Shutdown, SocketAddr};
 #[cfg(unix)]
 use std::os::unix::io::{AsRawFd, FromRawFd, IntoRawFd, RawFd};
+#[cfg(target_os = "wasi")]
+use std::os::wasi::io::{AsRawFd, FromRawFd, IntoRawFd, RawFd};
 #[cfg(windows)]
 use std::os::windows::io::{AsRawSocket, FromRawSocket, IntoRawSocket, RawSocket};
+#[cfg(target_os = "wasi")]
+use crate::sys::wasi::stream::TcpStreamWasi;
 
 use crate::io_source::IoSource;
 use crate::net::TcpSocket;
@@ -42,8 +46,15 @@ use crate::{event, Interest, Registry, Token};
 /// #     Ok(())
 /// # }
 /// ```
+#[cfg(not(target_os = "wasi"))]
 pub struct TcpStream {
     inner: IoSource<net::TcpStream>,
+}
+
+/// A replacement for std::net::TcpStream until implemented
+#[cfg(target_os = "wasi")]
+pub struct TcpStream {
+    inner: IoSource<TcpStreamWasi>,
 }
 
 impl TcpStream {
@@ -67,6 +78,12 @@ impl TcpStream {
     /// should already be connected via some other means (be it manually, or
     /// the standard library).
     pub fn from_std(stream: net::TcpStream) -> TcpStream {
+        #[cfg(target_os = "wasi")]
+        let stream = unsafe {
+            TcpStreamWasi {
+                raw_fd: stream.into_raw_fd()
+            }
+        };
         TcpStream {
             inner: IoSource::new(stream),
         }
@@ -250,21 +267,21 @@ impl fmt::Debug for TcpStream {
     }
 }
 
-#[cfg(unix)]
+#[cfg(any(unix, target_os = "wasi"))]
 impl IntoRawFd for TcpStream {
     fn into_raw_fd(self) -> RawFd {
         self.inner.into_inner().into_raw_fd()
     }
 }
 
-#[cfg(unix)]
+#[cfg(any(unix, target_os = "wasi"))]
 impl AsRawFd for TcpStream {
     fn as_raw_fd(&self) -> RawFd {
         self.inner.as_raw_fd()
     }
 }
 
-#[cfg(unix)]
+#[cfg(any(unix, target_os = "wasi"))]
 impl FromRawFd for TcpStream {
     /// Converts a `RawFd` to a `TcpStream`.
     ///

@@ -3,6 +3,8 @@ use std::mem;
 use std::net::SocketAddr;
 #[cfg(unix)]
 use std::os::unix::io::{AsRawFd, FromRawFd, IntoRawFd, RawFd};
+#[cfg(target_os = "wasi")]
+use std::os::wasi::io::{AsRawFd, FromRawFd, IntoRawFd, RawFd};
 #[cfg(windows)]
 use std::os::windows::io::{AsRawSocket, FromRawSocket, IntoRawSocket, RawSocket};
 use std::time::Duration;
@@ -25,6 +27,7 @@ pub struct TcpSocket {
 /// Configures a socket's TCP keepalive parameters.
 #[derive(Debug, Default, Clone)]
 pub struct TcpKeepalive {
+    #[allow(unused)]
     pub(crate) time: Option<Duration>,
     #[cfg(any(
         target_os = "linux",
@@ -332,6 +335,36 @@ impl TcpSocket {
 impl Drop for TcpSocket {
     fn drop(&mut self) {
         sys::tcp::close(self.sys);
+    }
+}
+
+#[cfg(target_os = "wasi")]
+impl IntoRawFd for TcpSocket {
+    fn into_raw_fd(self) -> RawFd {
+        let ret = self.sys;
+        // Avoid closing the socket
+        mem::forget(self);
+        ret as i32
+    }
+}
+
+#[cfg(target_os = "wasi")]
+impl AsRawFd for TcpSocket {
+    fn as_raw_fd(&self) -> RawFd {
+        self.sys as i32
+    }
+}
+
+#[cfg(target_os = "wasi")]
+impl FromRawFd for TcpSocket {
+    /// Converts a `RawFd` to a `TcpSocket`.
+    ///
+    /// # Notes
+    ///
+    /// The caller is responsible for ensuring that the socket is in
+    /// non-blocking mode.
+    unsafe fn from_raw_fd(fd: RawFd) -> TcpSocket {
+        TcpSocket { sys: fd as u32 }
     }
 }
 
