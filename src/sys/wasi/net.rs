@@ -7,6 +7,7 @@ fn unsupported() -> io::Error {
     io::Error::new(io::ErrorKind::Other, "not supported on wasi")
 }
 
+#[link(wasm_import_module = "wasi_experimental_network_unstable")]
 extern "C" {
     fn wasi_new_v4_socket(fd_out: *mut wasi::Fd) -> u16;
     fn wasi_connect_socket(sock: wasi::Fd, addr: &__wasi_socket_address_t) -> wasi::Fd;

@@ -22,6 +22,7 @@ use std::sync::{Arc, Mutex};
 use std::collections::BTreeMap;
 use crate::{Interest, Token};
 
+#[link(wasm_import_module = "wasi_experimental_network_unstable")]
 extern "C" {
     fn wasi_eventfd() -> wasi::Fd;
     fn wasi_eventfd_write1(fd: wasi::Fd) -> i32;
