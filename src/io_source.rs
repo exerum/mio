@@ -9,7 +9,7 @@ use std::os::windows::io::AsRawSocket;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::{fmt, io};
 
-#[cfg(any(unix, debug_assertions))]
+#[cfg(any(unix, debug_assertions, target_os = "wasi"))]
 use crate::poll;
 use crate::sys::IoSourceState;
 use crate::{event, Interest, Registry, Token};
